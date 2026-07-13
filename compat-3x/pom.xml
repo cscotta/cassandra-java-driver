@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--
+    Binary-compatible shim of the DataStax/Apache Cassandra Java driver 3.12.1 public API,
+    implemented on top of the 4.x driver (java-driver-core et al.).
+
+    Produces the com.datastax.driver.* package tree (core + mapping + extras) so that an
+    application compiled against cassandra-driver-{core,mapping,extras}:3.12.1 runs unchanged
+    after swapping this artifact in. NOT part of the 4.x reactor (kept out of the root <modules>)
+    so the verbatim-ported 3.x sources are not subject to the 4.x style/checkstyle/fmt plugins.
+  -->
+  <groupId>org.apache.cassandra</groupId>
+  <artifactId>cassandra-driver-shim</artifactId>
+  <version>3.12.1-shim</version>
+  <packaging>jar</packaging>
+  <name>Apache Cassandra Java Driver 3.12.1 compatibility shim (on 4.x)</name>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+
+    <driver4.version>4.19.4-SNAPSHOT</driver4.version>
+    <!-- Guava MUST match 3.12.1 (unshaded) so verbatim-ported sources compile and the public
+         ABI references the identical com.google.common.* types. -->
+    <guava.version>19.0</guava.version>
+    <!-- Netty / metrics / HdrHistogram aligned to 4.x versions; the FQNs the 3.x ABI exposes are
+         stable within these lines and the affected areas are already PARTIAL. -->
+    <netty.version>4.1.130.Final</netty.version>
+    <metrics.version>4.1.18</metrics.version>
+    <hdr.version>2.1.12</hdr.version>
+    <!-- extras optional codecs -->
+    <jackson.version>2.20.1</jackson.version>
+    <joda.version>2.9.9</joda.version>
+  </properties>
+
+  <dependencies>
+    <!-- 4.x delegation targets -->
+    <dependency>
+      <groupId>org.apache.cassandra</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>${driver4.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.cassandra</groupId>
+      <artifactId>java-driver-query-builder</artifactId>
+      <version>${driver4.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.cassandra</groupId>
+      <artifactId>java-driver-mapper-runtime</artifactId>
+      <version>${driver4.version}</version>
+    </dependency>
+
+    <!-- Unshaded Guava (public ABI + bridge). -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>${guava.version}</version>
+    </dependency>
+
+    <!-- io.netty.* exposed by NettySSLOptions / NettyOptions -->
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-handler</artifactId>
+      <version>${netty.version}</version>
+    </dependency>
+
+    <!-- com.codahale.metrics.* exposed by Metrics / QueryLogger -->
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+      <version>${metrics.version}</version>
+    </dependency>
+
+    <!-- JmxReporter moved out of metrics-core in Dropwizard 4.x; needed to publish JMX MBeans
+         (3.12.1 reported metrics over JMX by default). -->
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-jmx</artifactId>
+      <version>${metrics.version}</version>
+    </dependency>
+
+    <!-- HdrHistogram exposed by the PercentileTracker family -->
+    <dependency>
+      <groupId>org.hdrhistogram</groupId>
+      <artifactId>HdrHistogram</artifactId>
+      <version>${hdr.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.26</version>
+    </dependency>
+
+    <!-- extras: optional codec deps (user opts in, mirroring 3.x driver-extras) -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>javax.json</groupId>
+      <artifactId>javax.json-api</artifactId>
+      <version>1.0</version>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>joda-time</groupId>
+      <artifactId>joda-time</artifactId>
+      <version>${joda.version}</version>
+      <optional>true</optional>
+    </dependency>
+
+    <!-- test -->
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <version>6.14.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.24.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>cassandra-driver-shim</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.4.1</version>
+      </plugin>
+    </plugins>
+  </build>
+</project>
