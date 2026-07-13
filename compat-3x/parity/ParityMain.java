@@ -617,18 +617,18 @@ public class ParityMain {
       Session s4 = c4.connect();
       Host h = c4.getMetadata().getAllHosts().iterator().next();
       boolean queryOk = true;
-      for (int round = 0; round < 15; round++) {
-        for (int i = 0; i < 50; i++) {
+      // Fire continuously AND check each round: getLatencyAtPercentile reflects the last completed
+      // interval, which decays to -1 once query flow stops and an empty interval rotates in. Keeping
+      // queries flowing while polling makes "warmed" deterministic on both engines.
+      boolean warmed = false;
+      for (int round = 0; round < 80 && !warmed; round++) {
+        for (int i = 0; i < 30; i++) {
           Statement st = new SimpleStatement("SELECT release_version FROM system.local");
           st.setIdempotent(true);
           if (s4.execute(st).one() == null) queryOk = false;
         }
         try { Thread.sleep(30); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-      }
-      boolean warmed = false;
-      for (int attempt = 0; attempt < 60 && !warmed; attempt++) {
         if (tracker.getLatencyAtPercentile(h, null, null, 99.0) >= 0) warmed = true;
-        else { try { Thread.sleep(30); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); } }
       }
       o("specex.trackerWarmed", warmed);
       o("specex.queryOk", queryOk);
