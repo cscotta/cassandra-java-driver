@@ -6,20 +6,25 @@ This harness runs the **DataStax/Apache Cassandra Java driver 3.12.1's own** Tes
 binary compatibility. This is the strongest compatibility evidence available: the authors' own tests,
 run against the shim.
 
-> All file paths in this directory are **sandbox-absolute** (development environment). Adjust the
-> `CONFIG` block at the top of `run-upstream.sh` before running elsewhere.
+> These result tallies are curated reference artifacts. The runner scripts live in
+> `../../../scripts/` (`run-upstream.sh`, `annotate.sh`); all paths are overridable via `SHIM_*`
+> environment variables and default to the dev sandbox. The suite is normally driven by the Maven
+> integration test `UpstreamSuiteIT` (`mvn verify -Pit`).
 
 ## How to reproduce
 
 ```
-# build the shim first
-JAVA_HOME=<jdk8> mvn -f ../../pom.xml clean package -DskipTests
+# from the compat-3x module: build the shim, then run both layers
+JAVA_HOME=<jdk8> mvn -f pom.xml clean package -DskipTests
+JAVA_HOME=<jdk8> mvn -f pom.xml verify -Pit \
+    -Dshim.contactPoint=127.0.0.1:9042 \
+    -Dshim.cjd=<path to a 3.12.1 driver source checkout>
 
-# baseline under the REAL 3.12.1 jars, then under the SHIM
-./run-upstream.sh real
-./run-upstream.sh shim
-# per-class logs: out-real/<fqcn>.log, out-shim/<fqcn>.log
-# tallies:        results-real.tsv, results-shim.tsv
+# or run the harness scripts standalone (baseline under REAL, then under SHIM):
+SHIM_WORKDIR=target ./src/test/scripts/run-upstream.sh real
+SHIM_WORKDIR=target ./src/test/scripts/run-upstream.sh shim
+# per-class logs: target/upstream-tests/out-<real|shim>/<fqcn>.log
+# tallies:        target/upstream-tests/results-<real|shim>.tsv
 ```
 
 `run-upstream.sh` runs each candidate as `org.testng.TestNG -testclass <fqcn> -groups unit` and parses

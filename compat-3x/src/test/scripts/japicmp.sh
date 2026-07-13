@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # Run japicmp comparing the built shim jar against the real 3.12.1 reference jars.
 # Usage: japicmp.sh [core|mapping|extras|all]   (default: all)
+# Overridable via env: SHIM_JDK8, SHIM_M2, SHIM_JAR, SHIM_WORKDIR. Self-locates the module.
 set -u
-JDK=/usr/lib/jvm/jdk8u492-b09
-JAPICMP=$(ls ~/.m2/repository/com/github/siom79/japicmp/japicmp/*/japicmp-*-jar-with-dependencies.jar 2>/dev/null | head -1)
-M2=~/.m2/repository/org/apache/cassandra
-SHIM=/home/agent/projects/cassandra-java-driver/compat-3x/target/cassandra-driver-shim.jar
-OUT=/home/agent/projects/shim-work/japicmp
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE="$(cd "$SCRIPT_DIR/../../.." && pwd)"           # compat-3x
+JDK="${SHIM_JDK8:-/usr/lib/jvm/jdk8u492-b09}"
+M2R="${SHIM_M2:-$HOME/.m2/repository}"
+JAPICMP=$(ls "$M2R"/com/github/siom79/japicmp/japicmp/*/japicmp-*-jar-with-dependencies.jar 2>/dev/null | head -1)
+M2="$M2R/org/apache/cassandra"
+SHIM="${SHIM_JAR:-$MODULE/target/cassandra-driver-shim.jar}"
+OUT="${SHIM_WORKDIR:-$MODULE/target/japicmp}"
 mkdir -p "$OUT"
 
 # Internal-but-public 3.x classes with no stable contract / no 4.x analogue (see 00-IMPL-PLAN.md).

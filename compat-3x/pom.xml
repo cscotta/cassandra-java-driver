@@ -36,6 +36,13 @@
     <!-- extras optional codecs -->
     <jackson.version>2.20.1</jackson.version>
     <joda.version>2.9.9</joda.version>
+
+    <surefire.version>3.0.0</surefire.version>
+    <!-- Layer 2 (integration) contact point + real-3.x checkout; overridable on the CLI.
+         Default suits the dev sandbox; the ITs SKIP gracefully if unreachable/absent. -->
+    <shim.contactPoint>127.0.0.1:9042</shim.contactPoint>
+    <shim.cjd>/home/agent/projects/cjd-3.12.1</shim.cjd>
+    <shim.jdk8>/usr/lib/jvm/jdk8u492-b09</shim.jdk8>
   </properties>
 
   <dependencies>
@@ -146,6 +153,75 @@
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.4.1</version>
       </plugin>
+
+      <!-- Layer 1: standalone unit tests (*Test). Run on a plain `mvn test`; NO Cassandra,
+           NO real 3.x. Surefire auto-detects the TestNG provider from the test-scope dep. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire.version}</version>
+        <configuration>
+          <!-- Only Layer-1 unit classes here; *IT are handled by failsafe (Layer 2). -->
+          <includes>
+            <include>**/*Test.java</include>
+          </includes>
+          <excludes>
+            <exclude>**/*IT.java</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!-- Layer 2 plugin is DECLARED here but its executions are bound only in the `-Pit`
+           profile, so `mvn test`/`mvn verify` (no profile) run Layer 1 only. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${surefire.version}</version>
+      </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <!-- Layer 2: integration tests (*IT), gated on live C* + real 3.12.1 jars.
+         `mvn verify -Pit` binds failsafe to integration-test/verify. The ITs SKIP
+         gracefully (TestNG SkipException) when the contact point or real jars are absent. -->
+    <profile>
+      <id>it</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>${surefire.version}</version>
+            <configuration>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+              <!-- Handed to the ITs, which translate them into SHIM_* env vars for the
+                   differential + upstream harness subprocesses. Paths are Maven-derived,
+                   not hardcoded /tmp. -->
+              <systemPropertyVariables>
+                <shim.contactPoint>${shim.contactPoint}</shim.contactPoint>
+                <shim.moduleDir>${project.basedir}</shim.moduleDir>
+                <shim.jar>${project.build.directory}/cassandra-driver-shim.jar</shim.jar>
+                <shim.workDir>${project.build.directory}</shim.workDir>
+                <shim.m2>${settings.localRepository}</shim.m2>
+                <shim.cjd>${shim.cjd}</shim.cjd>
+                <shim.jdk8>${shim.jdk8}</shim.jdk8>
+              </systemPropertyVariables>
+            </configuration>
+            <executions>
+              <execution>
+                <id>integration-tests</id>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

@@ -4,10 +4,14 @@
 # evidence for its exclusion, not a shim defect. Idempotent (reads only the first 5 columns).
 # Called automatically at the end of run-upstream.sh; safe to run standalone.
 set -u
-HERE="$(cd "$(dirname "$0")" && pwd)"
-EXC="$HERE/exclusions.txt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE="$(cd "$SCRIPT_DIR/../../.." && pwd)"           # compat-3x
+# EXCLUSIONS (curated, versioned) + RESULTS_DIR (regenerated tallies) are overridable so this
+# is usable both standalone and from run-upstream.sh with results under target/.
+EXC="${SHIM_EXCLUSIONS:-$MODULE/src/test/resources/parity/upstream-tests/exclusions.txt}"
+RESULTS_DIR="${SHIM_RESULTS_DIR:-$MODULE/target/upstream-tests}"
 for mode in real shim; do
-  RES="$HERE/results-$mode.tsv"
+  RES="$RESULTS_DIR/results-$mode.tsv"
   [ -f "$RES" ] || continue
   awk -F'\t' -v OFS='\t' '
     NR==FNR { if ($0 !~ /^#/ && NF>=2) cat[$1]=$2; next }

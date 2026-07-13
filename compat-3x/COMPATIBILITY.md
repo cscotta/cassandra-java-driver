@@ -39,11 +39,46 @@ swap**, without source changes.
   `StreamIdGenerator`, `ClockFactory`+`Native`, `EventDebouncer`, `RollingCount`) and **impl-detail**
   (`StatementSizeTest` — the shim does not recompute the 3.x request wire-frame size, so
   `Statement.requestSizeInBytes(...)` returns `-1`). The full results table, categorized exclusion
-  list, and reproduction harness live in [`parity/upstream-tests/`](parity/upstream-tests/)
-  (`RESULTS.md`, `exclusions.txt`, `run-upstream.sh`). Three package-private shim gaps that the
+  list, and reproduction harness live in
+  [`src/test/resources/parity/upstream-tests/`](src/test/resources/parity/upstream-tests/)
+  (`RESULTS.md`, `exclusions.txt`, `candidates.txt`) and
+  [`src/test/scripts/run-upstream.sh`](src/test/scripts/run-upstream.sh), wrapped as the Maven
+  integration test `UpstreamSuiteIT`. Three package-private shim gaps that the
   upstream tests surfaced were fixed (`PoolingOptions.setProtocolVersion`, the injectable `Clock` seam
   on the monotonic timestamp generators, and the internal `SystemProperties` helper); all are additive
   and invisible to `japicmp`.
+
+## Running the tests
+
+The compatibility evidence is wired into the Maven build as two layers:
+
+- **Layer 1 — unit tests** (`mvn test`, surefire, `*Test`): standalone TestNG tests under
+  `src/test/java/com/datastax/driver/shim/unit/` that assert the shim's deterministic pure-logic
+  surface (QueryBuilder/SchemaBuilder CQL rendering, codec format/parse + serialize round-trips,
+  `DataType`/`TypeTokens`, the exception hierarchy, and `UUIDs`/`Bytes`/`VersionNumber`). They need
+  **no Cassandra and no real 3.x driver**.
+
+  ```
+  JAVA_HOME=<jdk8> mvn -f pom.xml test
+  ```
+
+- **Layer 2 — integration tests** (`mvn verify -Pit`, failsafe, `*IT`): the two authoritative
+  cross-checks, gated on a live Cassandra + the real 3.12.1 jars. `DifferentialParityIT` compiles
+  `ParityMain` against the real 3.12.1 API, runs it under the real driver and under the shim against
+  the same node, and asserts each of the 149 KEY=VALUE observations identical (per-scenario
+  reporting). `UpstreamSuiteIT` runs the 3.12.1 driver's own unit suite under both classpaths and
+  asserts, per candidate class, that the shim's pass-set ⊇ the real's (64 classes / 695 methods).
+  Both **skip gracefully** when the contact point or the real jars are unavailable.
+
+  ```
+  JAVA_HOME=<jdk8> mvn -f pom.xml verify -Pit \
+      -Dshim.contactPoint=127.0.0.1:9042 \
+      -Dshim.cjd=<path to 3.12.1 driver source checkout>
+  ```
+
+  The real-3.x and shim classpaths are resolved into `target/` (never hardcoded `/tmp`); the real
+  `cassandra-driver-*` jars are kept off the module's own test classpath and used only by the IT
+  subprocesses. ABI is checked separately by [`src/test/scripts/japicmp.sh`](src/test/scripts/japicmp.sh).
 
 ## Requirements
 
