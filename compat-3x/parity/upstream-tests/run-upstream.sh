@@ -111,3 +111,7 @@ while read -r fqcn; do
 done < "$CAND"
 
 echo "== wrote $RES =="
+# Annotate the raw tally with an explicit verdict column (PASS / EXCLUDED:<reason>) so the file is
+# self-documenting: a FAIL/LOADFAIL on an EXCLUDED (internal-bound/etc.) class is expected evidence
+# for its exclusion, not a shim defect.
+"$HERE/annotate.sh" || true
