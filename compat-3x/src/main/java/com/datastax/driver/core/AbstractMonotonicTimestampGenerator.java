@@ -34,6 +34,18 @@ package com.datastax.driver.core;
  */
 public abstract class AbstractMonotonicTimestampGenerator implements TimestampGenerator {
 
+  // Injectable clock, package-visible so the 3.x timestamp-generator tests can substitute a mock
+  // (as in the real 3.12.1 driver's @VisibleForTesting field). Defaults to a millisecond-granularity
+  // system clock; the shim does not use a native (JNR gettimeofday) clock, matching the omitted
+  // internal 'Native' type.
+  volatile Clock clock =
+      new Clock() {
+        @Override
+        public long currentTimeMicros() {
+          return System.currentTimeMillis() * 1000;
+        }
+      };
+
   /**
    * Compute the next timestamp, given the last timestamp previously generated.
    *
@@ -48,7 +60,7 @@ public abstract class AbstractMonotonicTimestampGenerator implements TimestampGe
    * @return the next timestamp to use, in microseconds.
    */
   protected long computeNext(long last) {
-    long currentTick = currentTimeMicros();
+    long currentTick = clock.currentTimeMicros();
     if (last >= currentTick) {
       onDrift(currentTick, last);
       return last + 1;
@@ -67,8 +79,4 @@ public abstract class AbstractMonotonicTimestampGenerator implements TimestampGe
    * @param lastTimestamp the last timestamp that was generated, in microseconds.
    */
   protected abstract void onDrift(long currentTick, long lastTimestamp);
-
-  private static long currentTimeMicros() {
-    return System.currentTimeMillis() * 1000;
-  }
 }

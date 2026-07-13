@@ -28,6 +28,22 @@ swap**, without source changes.
   `onTableAdded`), the `QueryOptions` refresh-debouncer knobs, `PoolingOptions` round-trips, real
   Dropwizard metrics (live registry + recorded `cql-requests`, JMX reporting on by default), and a
   custom `EndPointFactory` bridged onto the 4.x topology monitor.
+- **Verified against the 3.12.1 driver's own test suite.** The 3.12.1 driver's own TestNG unit suite
+  (`@Test(groups = "unit")`) was run against the shim with the real 3.x driver **absent** from the
+  classpath — the 3.x-compiled test bytecode links against the shim purely through binary
+  compatibility. **64 public-API unit classes / 695 test methods pass against the shim, identical to
+  the real 3.12.1 driver** (core 47/427, extras 15/207, mapping 2/61). Excluded classes are
+  **internal-bound** (they target package-private 3.x internals the shim deliberately omits — the
+  protocol-v5 `Segment*`/`Frame` framing, `Connection`/`AbstractReconnectionHandler`,
+  `ReplicationStrategy`/`ReplicationFactor`/`Cluster.Manager`, `DirectedGraph`, `SimpleJSONParser`,
+  `StreamIdGenerator`, `ClockFactory`+`Native`, `EventDebouncer`, `RollingCount`) and **impl-detail**
+  (`StatementSizeTest` — the shim does not recompute the 3.x request wire-frame size, so
+  `Statement.requestSizeInBytes(...)` returns `-1`). The full results table, categorized exclusion
+  list, and reproduction harness live in [`parity/upstream-tests/`](parity/upstream-tests/)
+  (`RESULTS.md`, `exclusions.txt`, `run-upstream.sh`). Three package-private shim gaps that the
+  upstream tests surfaced were fixed (`PoolingOptions.setProtocolVersion`, the injectable `Clock` seam
+  on the monotonic timestamp generators, and the internal `SystemProperties` helper); all are additive
+  and invisible to `japicmp`.
 
 ## Requirements
 

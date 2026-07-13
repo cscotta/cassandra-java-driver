@@ -1,0 +1,45 @@
+# Excluded upstream 3.12.1 unit-test classes (with reasons)
+#
+# Format: <fqcn> <TAB> <category> <TAB> <omitted-internal-or-reason>
+# Categories:
+#   internal-bound  : the test directly references a package-private 3.x internal that the shim
+#                     deliberately omits (japicmp-excluded / no stable 4.x analogue). It fails to
+#                     load, or a @Before* configuration method fails, before any public behavior runs.
+#   impl-detail     : the shim intentionally changed an implementation detail the test asserts on.
+#   env-flaky-real  : fails on the REAL 3.12.1 driver too in this sandbox (not a shim issue).
+#   server-gated    : @Before*/methods need a CCM/Scassandra cluster; unit-tagged methods are SKIPPED
+#                     on REAL (0 executed). The shim skips them identically (parity), so they are not
+#                     part of the runnable public-API unit pass-set.
+#   abstract-base   : abstract superclass; 0 unit tests when run directly (NOTESTS on REAL and shim).
+
+# ---- internal-bound (omitted package-private internal) ----
+com.datastax.driver.core.AbstractReconnectionHandlerTest	internal-bound	AbstractReconnectionHandler (reconnection state machine)
+com.datastax.driver.core.BytesToSegmentDecoderTest	internal-bound	Segment (protocol-v5 framing)
+com.datastax.driver.core.SegmentBuilderTest	internal-bound	SegmentBuilder / Message / Requests (protocol-v5 framing)
+com.datastax.driver.core.SegmentCodecTest	internal-bound	SegmentCodec (protocol-v5 framing)
+com.datastax.driver.core.SegmentToFrameDecoderTest	internal-bound	Frame.Header / Segment (protocol-v5 framing)
+com.datastax.driver.core.EventDebouncerTest	internal-bound	EventDebouncer (control-connection debouncer)
+com.datastax.driver.core.DirectedGraphTest	internal-bound	DirectedGraph (schema topological-sort util)
+com.datastax.driver.core.ReplicationFactorTest	internal-bound	ReplicationFactor (replication metadata internal)
+com.datastax.driver.core.ReplicationStrategyTest	internal-bound	ReplicationStrategy (replication metadata internal)
+com.datastax.driver.core.SimpleStrategyTest	internal-bound	ReplicationStrategy / Cluster.Manager (via AbstractReplicationStrategyTest)
+com.datastax.driver.core.NetworkTopologyStrategyTest	internal-bound	ReplicationStrategy / Cluster.Manager (via AbstractReplicationStrategyTest)
+com.datastax.driver.core.SimpleJSONParserTest	internal-bound	SimpleJSONParser (schema-JSON parser internal)
+com.datastax.driver.core.StreamIdGeneratorTest	internal-bound	StreamIdGenerator (protocol stream-id allocator; explicitly excluded)
+com.datastax.driver.core.ClockFactoryTest	internal-bound	ClockFactory + Native (JNR gettimeofday native clock; Native is excluded)
+com.datastax.driver.core.policies.RollingCountTest	internal-bound	policies.RollingCount + policies.Clock (percentile-tracker ring buffer)
+
+# ---- impl-detail (shim intentionally does not reimplement) ----
+com.datastax.driver.core.StatementSizeTest	impl-detail	Statement.requestSizeInBytes() returns -1 (3.x request wire-frame size not recomputed on 4.x); setup also builds internal PreparedId.PreparedMetadata
+
+# ---- server-gated (skipped on REAL and shim; 0 executed) ----
+com.datastax.driver.core.CustomPayloadTest	server-gated	extends CCMTestsSupport; unit methods need session() -> SKIPPED on REAL (2/0/2) and shim (2/0/2)
+com.datastax.driver.core.PagingStateTest	server-gated	extends CCMTestsSupport; unit methods need session() -> SKIPPED on REAL (3/0/3) and shim (3/0/3)
+
+# ---- env-flaky on REAL (fails on the real driver too in this sandbox) ----
+com.datastax.driver.core.NativeTest	env-flaky-real	fails on REAL (1/1/0): JNR native library probe in this environment
+com.datastax.driver.core.policies.WhiteListPolicyTest	env-flaky-real	fails on REAL (2/1/0): loopback/network assumptions
+
+# ---- abstract base (NOTESTS when run directly) ----
+com.datastax.driver.core.AbstractBatchIdempotencyTest	abstract-base	abstract; concrete subclasses are server-tagged (short/long)
+com.datastax.driver.core.PercentileTrackerTest	abstract-base	abstract base of Per-Host / Cluster-Wide tracker tests

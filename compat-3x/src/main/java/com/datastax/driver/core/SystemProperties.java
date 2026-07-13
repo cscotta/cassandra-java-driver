@@ -1,0 +1,74 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.datastax.driver.core;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Allows overriding internal settings via system properties.
+ *
+ * <p>This is generally reserved for tests or "expert" usage.
+ *
+ * <p>Package-private internal support type, identical to the 3.12.1 driver's {@code
+ * SystemProperties}. It is not part of the public 3.x ABI (japicmp compares only public/protected
+ * members); it is retained so 3.x test helpers that read tuning properties link against the shim.
+ */
+class SystemProperties {
+  private static final Logger logger = LoggerFactory.getLogger(SystemProperties.class);
+
+  static int getInt(String key, int defaultValue) {
+    String stringValue = System.getProperty(key);
+    if (stringValue == null) {
+      logger.debug("{} is undefined, using default value {}", key, defaultValue);
+      return defaultValue;
+    }
+    try {
+      int value = Integer.parseInt(stringValue);
+      logger.info("{} is defined, using value {}", key, value);
+      return value;
+    } catch (NumberFormatException e) {
+      logger.warn(
+          "{} is defined but could not parse value {}, using default value {}",
+          key,
+          stringValue,
+          defaultValue);
+      return defaultValue;
+    }
+  }
+
+  static boolean getBoolean(String key, boolean defaultValue) {
+    String stringValue = System.getProperty(key);
+    if (stringValue == null) {
+      logger.debug("{} is undefined, using default value {}", key, defaultValue);
+      return defaultValue;
+    }
+    try {
+      boolean value = Boolean.parseBoolean(stringValue);
+      logger.info("{} is defined, using value {}", key, value);
+      return value;
+    } catch (NumberFormatException e) {
+      logger.warn(
+          "{} is defined but could not parse value {}, using default value {}",
+          key,
+          stringValue,
+          defaultValue);
+      return defaultValue;
+    }
+  }
+}

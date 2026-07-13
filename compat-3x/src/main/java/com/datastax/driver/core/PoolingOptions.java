@@ -307,6 +307,58 @@ public class PoolingOptions {
     return this;
   }
 
+  // Package-private, identical to the 3.12.1 driver: applies the protocol-version-dependent defaults
+  // to any option still left UNSET, and re-checks the per-connection invariants. Not part of the
+  // public 3.x ABI (japicmp compares only public/protected members). In the real 3.x driver the
+  // Cluster manager invoked this once the negotiated protocol version was known; the shim keeps it so
+  // the option object exhibits the same version-aware default behaviour when driven directly.
+  synchronized void setProtocolVersion(ProtocolVersion actualVersion) {
+    this.protocolVersion = actualVersion;
+
+    ProtocolVersion referenceVersion = null;
+    for (ProtocolVersion key : DEFAULTS.keySet()) {
+      if (key.compareTo(actualVersion) > 0) break;
+      else referenceVersion = key;
+    }
+    assert referenceVersion != null; // will not happen since V1 is a key
+
+    Map<String, Integer> defaults = DEFAULTS.get(referenceVersion);
+
+    if (coreConnections[LOCAL.ordinal()] == UNSET)
+      coreConnections[LOCAL.ordinal()] = defaults.get(CORE_POOL_LOCAL_KEY);
+    if (maxConnections[LOCAL.ordinal()] == UNSET)
+      maxConnections[LOCAL.ordinal()] = defaults.get(MAX_POOL_LOCAL_KEY);
+    checkConnectionsPerHostOrder(
+        coreConnections[LOCAL.ordinal()], maxConnections[LOCAL.ordinal()], LOCAL);
+
+    if (coreConnections[REMOTE.ordinal()] == UNSET)
+      coreConnections[REMOTE.ordinal()] = defaults.get(CORE_POOL_REMOTE_KEY);
+    if (maxConnections[REMOTE.ordinal()] == UNSET)
+      maxConnections[REMOTE.ordinal()] = defaults.get(MAX_POOL_REMOTE_KEY);
+    checkConnectionsPerHostOrder(
+        coreConnections[REMOTE.ordinal()], maxConnections[REMOTE.ordinal()], REMOTE);
+
+    if (newConnectionThreshold[LOCAL.ordinal()] == UNSET)
+      newConnectionThreshold[LOCAL.ordinal()] = defaults.get(NEW_CONNECTION_THRESHOLD_LOCAL_KEY);
+    checkRequestsPerConnectionRange(
+        newConnectionThreshold[LOCAL.ordinal()], "New connection threshold", LOCAL);
+
+    if (newConnectionThreshold[REMOTE.ordinal()] == UNSET)
+      newConnectionThreshold[REMOTE.ordinal()] = defaults.get(NEW_CONNECTION_THRESHOLD_REMOTE_KEY);
+    checkRequestsPerConnectionRange(
+        newConnectionThreshold[REMOTE.ordinal()], "New connection threshold", REMOTE);
+
+    if (maxRequestsPerConnectionLocal == UNSET)
+      maxRequestsPerConnectionLocal = defaults.get(MAX_REQUESTS_PER_CONNECTION_LOCAL_KEY);
+    checkRequestsPerConnectionRange(
+        maxRequestsPerConnectionLocal, "Max requests per connection", LOCAL);
+
+    if (maxRequestsPerConnectionRemote == UNSET)
+      maxRequestsPerConnectionRemote = defaults.get(MAX_REQUESTS_PER_CONNECTION_REMOTE_KEY);
+    checkRequestsPerConnectionRange(
+        maxRequestsPerConnectionRemote, "Max requests per connection", REMOTE);
+  }
+
   /**
    * UNMAPPED against 4.x (no runtime pool-refresh API). No-op in the shim; kept for ABI
    * compatibility.
