@@ -143,6 +143,33 @@
   <build>
     <finalName>cassandra-driver-shim</finalName>
     <plugins>
+      <!-- Provenance segregation: the 3.12.1 source carried forward verbatim (identical to
+           3.12.1 modulo comments, no shim code) lives in its own source root
+           `src/main/java-driver-3x/`, kept out of `src/main/java/` (which holds only files that
+           contain net-new shim code). Package names are unchanged (com.datastax.driver.*) — the
+           split is by directory, not package, because the ABI requires the original packages.
+           This add-source is in the base <build> (bound to generate-sources, part of the default
+           lifecycle) so the second root is compiled for every `mvn compile/test/package/verify`,
+           not just under a profile. See PROVENANCE.md. -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.4.0</version>
+        <executions>
+          <execution>
+            <id>add-ported-3x-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/main/java-driver-3x</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

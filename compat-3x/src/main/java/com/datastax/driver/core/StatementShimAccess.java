@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Shim provenance: net-new — no 3.12.1 counterpart; written for the shim. See PROVENANCE.md.
 package com.datastax.driver.core;
 
 import com.datastax.oss.driver.api.core.CqlSession;

@@ -15,6 +15,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Shim provenance: 3.12.1 base + shim facade edits — net-new shim lines are layered on
+// top of the carried-forward 3.12.1 source. For the exact added/changed lines see
+// PROVENANCE.md and `src/test/scripts/provenance-diff.sh` (diff vs tag shim-3x-vendor-3.12.1).
 package com.datastax.driver.core;
 
 import java.nio.ByteBuffer;

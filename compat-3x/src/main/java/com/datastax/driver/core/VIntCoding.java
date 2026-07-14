@@ -44,6 +44,9 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+// Shim provenance: 3.12.1 base + shim facade edits — net-new shim lines are layered on
+// top of the carried-forward 3.12.1 source. For the exact added/changed lines see
+// PROVENANCE.md and `src/test/scripts/provenance-diff.sh` (diff vs tag shim-3x-vendor-3.12.1).
 package com.datastax.driver.core;
 
 import java.io.DataInput;

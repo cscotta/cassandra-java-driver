@@ -74,3 +74,30 @@ The internal support/bridge layer lives in `com.datastax.shim.bridge` (package-p
 ABI; `japicmp` compares only `com.datastax.driver.*`). Some bridges deliberately use 4.x *internal*
 SPIs (`DefaultDriverContext`, internal `NettyOptions`, `DefaultTopologyMonitor`) to expose 3.x
 behavior that 4.x otherwise hides — see `COMPATIBILITY.md` for where and why.
+
+## Source layout: ported-3.x vs net-new shim code
+
+Roughly four-fifths of this module is Cassandra Java driver **3.12.1** source carried forward
+verbatim; the rest is net-new shim code. The two are **segregated by source directory** so provenance
+is obvious at a glance (package names stay `com.datastax.driver.*` — the ABI requires them, so this is
+a directory split, not a package rename):
+
+- **`src/main/java-driver-3x/`** — 3.12.1 source carried forward. Every file is identical to its
+  3.12.1 counterpart **modulo comments**, contains **no shim code**, and carries **no** provenance
+  header (preserving that byte-identity is the point). Compiled in via
+  `build-helper-maven-plugin`'s `add-source` (base `<build>`, so it applies to every build).
+- **`src/main/java/`** — every file that contains net-new shim code: the *hybrids* (3.12.1 classes
+  with 4.x-delegating facade edits, e.g. `Cluster`, `Metadata`, `Metrics`), the net-new glue classes,
+  and the `com.datastax.shim.bridge` layer. **Every file here carries a `// Shim provenance:` header.**
+
+Three tools maintain and expose this (all under `src/test/scripts/`, see also
+[`PROVENANCE.md`](PROVENANCE.md)):
+
+- `provenance-manifest.sh` — classifies every main source file against the 3.12.1 sources and
+  regenerates `PROVENANCE.md` (`--md PROVENANCE.md`).
+- `provenance-check.sh` — CI guard: asserts *file in `java/` ⇔ has a header* and *file in
+  `java-driver-3x/` ⇔ no header and identical-to-3.12.1-modulo-comments*.
+- `provenance-diff.sh` — shows the exact line-level delta the shim adds on top of 3.12.1, **including
+  inside the hybrid files**, by diffing against the orphan tag `shim-3x-vendor-3.12.1` (pristine
+  3.12.1 sources committed at the shim's own paths). This is diff-based, not `git blame`-based — see
+  `PROVENANCE.md`.

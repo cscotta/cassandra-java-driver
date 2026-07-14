@@ -313,3 +313,18 @@ The shim is built as a single jar containing all three package trees. For a stri
 drop-in (replacing `cassandra-driver-core`, `-mapping`, and `-extras` independently), it can be
 split into three jars by package, or republished under the original GAVs with a transitive
 dependency on `java-driver-core`.
+
+## Source provenance (ported-3.x vs net-new)
+
+The module is deliberately split so it is easy to tell 3.12.1 source carried forward from net-new
+shim code:
+
+- `src/main/java-driver-3x/` — 3.12.1 source carried forward verbatim (identical modulo comments, no
+  shim code, no provenance header).
+- `src/main/java/` — every file that contains net-new shim code (hybrids + net-new classes + the
+  `com.datastax.shim.*` bridge); each carries a `// Shim provenance:` header.
+
+Package names stay `com.datastax.driver.*` (the ABI requires them) — the split is by directory, not
+package. See [`PROVENANCE.md`](PROVENANCE.md) for the per-file manifest and the tooling
+(`provenance-manifest.sh` / `provenance-check.sh` / `provenance-diff.sh`, incl. the
+`shim-3x-vendor-3.12.1` baseline tag for line-level attribution of the hybrid files).

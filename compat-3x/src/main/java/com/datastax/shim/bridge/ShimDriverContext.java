@@ -15,6 +15,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// Shim provenance: net-new bridge — package com.datastax.shim.* is internal shim support,
+// not part of the 3.x ABI (japicmp compares only com.datastax.driver.*). See PROVENANCE.md.
 package com.datastax.shim.bridge;
 
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
