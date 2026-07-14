@@ -163,14 +163,14 @@ case "$MODE" in
       echo "# Provenance of \`compat-3x\` source"
       echo
       echo "Every main source file is classified against the pristine Cassandra Java driver"
-      echo "**3.12.1** sources (tag \`3.12.1\`, commit \`873e6f7\`). The split is structural:"
+      echo "3.12.1 sources (tag \`3.12.1\`, commit \`873e6f7\`). The split is by directory:"
       echo
       echo "| Location | Meaning |"
       echo "|---|---|"
-      echo "| \`src/main/java-driver-3x/\` | 3.12.1 source carried forward — identical to 3.12.1 modulo comments. **No shim code.** No provenance header (byte-identity is the point). |"
+      echo "| \`src/main/java-driver-3x/\` | 3.12.1 source carried forward — identical to 3.12.1 modulo comments. No shim code. No provenance header (byte-identity is the point). |"
       echo "| \`src/main/java/\` | Contains net-new shim code (hybrids + net-new classes + the \`com.datastax.shim.*\` bridge). Every file carries a \`// Shim provenance:\` header. |"
       echo
-      echo "Package names are **unchanged** (\`com.datastax.driver.*\`) — the segregation is by"
+      echo "Package names are unchanged (\`com.datastax.driver.*\`) — the split is by"
       echo "source directory, because the ABI requires the original packages (japicmp 0/0/0)."
       echo
       echo "## Categories"
@@ -186,7 +186,7 @@ case "$MODE" in
       echo "## Line-level attribution for hybrid files"
       echo
       echo "The 3.12.1 sources are also committed pristine at the shim's own paths under the"
-      echo "orphan tag \`shim-3x-vendor-3.12.1\`. To see exactly which lines the shim added or"
+      echo "orphan tag \`shim-3x-vendor-3.12.1\`. To see which lines the shim added or"
       echo "changed on top of 3.12.1 (including inside the hybrid files):"
       echo
       echo '```'
@@ -194,10 +194,10 @@ case "$MODE" in
       echo "src/test/scripts/provenance-diff.sh <path>     # one file"
       echo '```'
       echo
-      echo "This attribution is **diff-based, not \`git blame\`-based**: \`git blame\` on a hybrid"
+      echo "This attribution is diff-based, not \`git blame\`-based: \`git blame\` on a hybrid"
       echo "points every line at the shim import commit, not at 3.12.1. Recovering true per-line"
       echo "blame back to 3.12.1 would require rewriting the (already-published) branch history,"
-      echo "which is deliberately not done — the vendor-baseline diff is the supported substitute."
+      echo "which is not done — the vendor-baseline diff is the supported substitute."
       echo
       echo "## Regenerating / checking"
       echo
@@ -207,8 +207,8 @@ case "$MODE" in
       echo '```'
       echo
       echo "\`provenance-check.sh\` enforces the invariant that keeps the split honest:"
-      echo "a file in \`java/\` **must** carry a provenance header; a file in \`java-driver-3x/\`"
-      echo "**must** carry none **and** be identical to its 3.12.1 counterpart modulo comments."
+      echo "a file in \`java/\` must carry a provenance header; a file in \`java-driver-3x/\`"
+      echo "must carry none, and be identical to its 3.12.1 counterpart modulo comments."
       echo
       echo "## Full manifest"
       echo

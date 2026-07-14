@@ -2,14 +2,14 @@
 # Provenance of `compat-3x` source
 
 Every main source file is classified against the pristine Cassandra Java driver
-**3.12.1** sources (tag `3.12.1`, commit `873e6f7`). The split is structural:
+3.12.1 sources (tag `3.12.1`, commit `873e6f7`). The split is by directory:
 
 | Location | Meaning |
 |---|---|
-| `src/main/java-driver-3x/` | 3.12.1 source carried forward — identical to 3.12.1 modulo comments. **No shim code.** No provenance header (byte-identity is the point). |
+| `src/main/java-driver-3x/` | 3.12.1 source carried forward — identical to 3.12.1 modulo comments. No shim code. No provenance header (byte-identity is the point). |
 | `src/main/java/` | Contains net-new shim code (hybrids + net-new classes + the `com.datastax.shim.*` bridge). Every file carries a `// Shim provenance:` header. |
 
-Package names are **unchanged** (`com.datastax.driver.*`) — the segregation is by
+Package names are unchanged (`com.datastax.driver.*`) — the split is by
 source directory, because the ABI requires the original packages (japicmp 0/0/0).
 
 ## Categories
@@ -25,7 +25,7 @@ source directory, because the ABI requires the original packages (japicmp 0/0/0)
 ## Line-level attribution for hybrid files
 
 The 3.12.1 sources are also committed pristine at the shim's own paths under the
-orphan tag `shim-3x-vendor-3.12.1`. To see exactly which lines the shim added or
+orphan tag `shim-3x-vendor-3.12.1`. To see which lines the shim added or
 changed on top of 3.12.1 (including inside the hybrid files):
 
 ```
@@ -33,10 +33,10 @@ src/test/scripts/provenance-diff.sh            # whole shim delta vs 3.12.1
 src/test/scripts/provenance-diff.sh <path>     # one file
 ```
 
-This attribution is **diff-based, not `git blame`-based**: `git blame` on a hybrid
+This attribution is diff-based, not `git blame`-based: `git blame` on a hybrid
 points every line at the shim import commit, not at 3.12.1. Recovering true per-line
 blame back to 3.12.1 would require rewriting the (already-published) branch history,
-which is deliberately not done — the vendor-baseline diff is the supported substitute.
+which is not done — the vendor-baseline diff is the supported substitute.
 
 ## Regenerating / checking
 
@@ -46,8 +46,8 @@ src/test/scripts/provenance-check.sh                         # CI guard (see bel
 ```
 
 `provenance-check.sh` enforces the invariant that keeps the split honest:
-a file in `java/` **must** carry a provenance header; a file in `java-driver-3x/`
-**must** carry none **and** be identical to its 3.12.1 counterpart modulo comments.
+a file in `java/` must carry a provenance header; a file in `java-driver-3x/`
+must carry none, and be identical to its 3.12.1 counterpart modulo comments.
 
 ## Full manifest
 

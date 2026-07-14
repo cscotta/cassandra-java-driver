@@ -2,13 +2,13 @@
 
 This harness runs the **DataStax/Apache Cassandra Java driver 3.12.1's own** TestNG unit suite
 (`@Test(groups = "unit")`) against the 3.12.1 → 4.x compatibility shim, with the real 3.x driver
-**absent** from the classpath. The 3.x-compiled test bytecode links against the shim purely through
+**absent** from the classpath. The 3.x-compiled test bytecode links against the shim through
 binary compatibility. This is the strongest compatibility evidence available: the authors' own tests,
 run against the shim.
 
 > These result tallies are curated reference artifacts. The runner scripts live in
 > `../../../scripts/` (`run-upstream.sh`, `annotate.sh`); all paths are overridable via `SHIM_*`
-> environment variables and default to the dev sandbox. The suite is normally driven by the Maven
+> environment variables and default to the dev sandbox. The suite is driven by the Maven
 > integration test `UpstreamSuiteIT` (`mvn verify -Pit`).
 
 ## How to reproduce
@@ -80,7 +80,7 @@ All three fixes are **additive and package-private / private**, so they are invi
    `computeNext` through it.
    *Caught by:* `AtomicMonotonicTimestampGeneratorTest` and `ThreadLocalMonotonicTimestampGeneratorTest`
    (they set `generator.clock = new MockClocks.FixedTimeClock(...)`) — was `NoClassDefFoundError: Clock`,
-   now 1/0/0 and 2/0/0. The exact drift-warning message/logger were already faithful, so the clock-skew
+   now 1/0/0 and 2/0/0. The drift-warning message/logger already matched, so the clock-skew
    resync assertions pass unchanged.
 
 3. **The package-private internal `SystemProperties` helper was absent**, so the 3.x `TestUtils` static
@@ -97,7 +97,7 @@ Summary:
   `SegmentBuilderTest`, `SegmentCodecTest`, `SegmentToFrameDecoderTest`, `EventDebouncerTest`,
   `DirectedGraphTest`, `ReplicationFactorTest`, `ReplicationStrategyTest`, `SimpleStrategyTest`,
   `NetworkTopologyStrategyTest`, `SimpleJSONParserTest`, `StreamIdGeneratorTest`, `ClockFactoryTest`,
-  `RollingCountTest` — each targets a package-private 3.x internal the shim deliberately omits
+  `RollingCountTest` — each targets a package-private 3.x internal the shim omits
   (protocol-v5 framing `Segment*`/`Frame.Header`, `Connection`/`AbstractReconnectionHandler`,
   `ReplicationStrategy`/`ReplicationFactor`/`Cluster.Manager`, `DirectedGraph`, `SimpleJSONParser`,
   `StreamIdGenerator`, `ClockFactory`+`Native`, `EventDebouncer`, `RollingCount`+`policies.Clock`).
@@ -106,11 +106,11 @@ Summary:
   the internal `PreparedId.PreparedMetadata`.
 - **server-gated (2):** `CustomPayloadTest`, `PagingStateTest` — extend `CCMTestsSupport`; their
   unit-tagged methods require a live `session()` and are **SKIPPED on REAL** (2/0/2 and 3/0/3). The shim
-  skips them identically (parity), so they contribute 0 executed tests either way.
+  skips them the same way (parity), so they contribute 0 executed tests either way.
 - **env-flaky on REAL (2):** `NativeTest` (1/1/0), `WhiteListPolicyTest` (2/1/0) — fail on the real
   3.12.1 driver too in this sandbox; not shim issues.
 - **abstract base (2):** `AbstractBatchIdempotencyTest`, `PercentileTrackerTest` — 0 unit tests when run
-  directly (NOTESTS on both).
+  on their own (NOTESTS on both).
 
 ## Full per-class results (REAL total/fail/skip → SHIM total/fail/skip)
 

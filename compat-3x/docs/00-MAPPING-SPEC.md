@@ -8,7 +8,7 @@ mapping spec grouped by shim package.
 - Target: `com.datastax.oss.driver` 4.x (`java-driver-core`, `java-driver-query-builder`,
   `java-driver-mapper-runtime`), **unshaded** Guava on the shim classpath.
 - japicmp compares the shim jar against the real 3.12.1 jars. Every public/protected type,
-  member, modifier, generic signature, and constant value below must match 3.12.1 exactly. The
+  member, modifier, generic signature, and constant value below must match 3.12.1. The
   4.x "target" column is a **runtime** delegation target, not an ABI constraint.
 
 ## Totals
@@ -16,7 +16,7 @@ mapping spec grouped by shim package.
 - Public/protected types cataloged: **354** across 18 areas.
 - Fail-fast / lossy translation paths (UNMAPPED at behavior level): **61** (see §UNMAPPED).
 - No public type is UNMAPPED at the *signature* level — every 3.12.1 public type is reproduced.
-  "UNMAPPED" always means the runtime translation to 4.x has no faithful target (throws,
+  "UNMAPPED" always means the runtime translation to 4.x has no target (throws,
   no-ops, or returns a lossy/synthetic value); the ABI surface is preserved regardless.
 
 ## Global mapping rules (apply to every area)
@@ -24,7 +24,7 @@ mapping spec grouped by shim package.
 1. **Reproduce 3.x kind, never inherit 4.x.** Where 3.x is a class/enum/abstract-class and 4.x
    is an interface (DataType, TypeCodec, CodecRegistry, ConsistencyLevel, WriteType,
    ProtocolVersion, BatchStatement.Type, ColumnDefinitions, Token, all metadata types, all
-   policy SPIs), the shim keeps the 3.x kind and holds/creates a 4.x delegate internally.
+   policy SPIs), the shim keeps the 3.x kind and holds/creates a 4.x delegate.
 2. **Enums stay enums, mapped by `name()` never ordinal.** 4.x reorders constants
    (`DefaultConsistencyLevel` puts `LOCAL_ONE` at position 6 vs 3.x ordinal 10). Adapters
    translate by name.
@@ -44,11 +44,11 @@ mapping spec grouped by shim package.
 
 ## Mapping status legend
 
-- **FULL** — signature reproduced and runtime backed by a faithful 4.x delegate (or a
+- **FULL** — signature reproduced and runtime backed by a 4.x delegate (or a
   self-contained reimplementation with byte-identical behavior).
 - **PARTIAL** — signature reproduced; runtime translation exists but is lossy, approximate, or
   reimplemented (behavioral-parity risk, not an ABI risk).
-- **UNMAPPED** — signature reproduced; no faithful 4.x runtime target — the member throws,
+- **UNMAPPED** — signature reproduced; no 4.x runtime target — the member throws,
   no-ops, or returns a synthetic value. Listed in §UNMAPPED.
 
 ---
@@ -68,16 +68,16 @@ Keep 3.x method casing `isDCLocal` (4.x renamed `isDcLocal`); keep public consta
 
 ## Package `com.datastax.driver.core.exceptions` (area: exceptions, 41 types)
 
-Whole hierarchy reimplemented **natively** as value objects; no 4.x inheritance. `ExceptionAdapter`
+Hierarchy reimplemented as value objects; no 4.x inheritance. `ExceptionAdapter`
 performs one-way 4.x→3.x translation at the boundary.
 
 | Type | Kind | Status | Note |
 |---|---|---|---|
 | `DriverException` | class (concrete) | FULL | 4.x abstract → shim concrete; concrete `copy()` |
-| `DriverInternalError` | class | UNMAPPED | no 4.x equivalent; emitted natively |
+| `DriverInternalError` | class | UNMAPPED | no 4.x equivalent; emitted by the shim |
 | `CoordinatorException` | **interface** | FULL | 4.x is abstract class; shim keeps interface |
 | `QueryExecutionException`/`QueryValidationException`/`QueryConsistencyException` | class | FULL | protected ctors stay protected |
-| `ReadTimeoutException`,`WriteTimeoutException`,`ReadFailureException`,`WriteFailureException`,`CASWriteUnknownException`,`UnavailableException`,`OverloadedException`,`BootstrappingException`,`TruncateException`,`FunctionExecutionException`,`CDCWriteException` | class | FULL | `UnavailableException extends QueryExecutionException` directly |
+| `ReadTimeoutException`,`WriteTimeoutException`,`ReadFailureException`,`WriteFailureException`,`CASWriteUnknownException`,`UnavailableException`,`OverloadedException`,`BootstrappingException`,`TruncateException`,`FunctionExecutionException`,`CDCWriteException` | class | FULL | `UnavailableException extends QueryExecutionException` |
 | `InvalidQueryException`,`InvalidConfigurationInQueryException`,`SyntaxError`,`UnauthorizedException` | class | FULL | |
 | `ServerError`,`ProtocolError` | class | FULL | reproduce 3.x superclass chain (extends `DriverInternalError`) + extra bridges |
 | `AuthenticationException` | class | FULL | 3.x extends DriverException+CoordinatorException; NOT 4.x RuntimeException |
@@ -89,16 +89,16 @@ performs one-way 4.x→3.x translation at the boundary.
 | `FrameTooLongException` | class | PARTIAL | streamId vs address disjoint |
 | `UnsupportedProtocolVersionException` | class | PARTIAL | 4.x `getAttemptedVersions():List` only |
 | `UnsupportedFeatureException` | class | UNMAPPED | 4.x throws IllegalArgumentException |
-| `UnpreparedException` | class | UNMAPPED | 4.x re-prepares transparently |
+| `UnpreparedException` | class | UNMAPPED | 4.x re-prepares on its own |
 | `BusyPoolException` | class | UNMAPPED | no 4.x pool exception |
 | `InvalidTypeException` | class | UNMAPPED | 4.x throws IllegalArgumentException/ClassCastException; caught+rethrown by codec adapters |
-| `PagingStateException` | class | UNMAPPED | emitted natively by shim PagingState |
-| `TraceRetrievalException` | class | UNMAPPED | emitted natively by shim QueryTrace |
+| `PagingStateException` | class | UNMAPPED | emitted by shim PagingState |
+| `TraceRetrievalException` | class | UNMAPPED | emitted by shim QueryTrace |
 | `UnresolvedUserTypeException` | class | UNMAPPED | 3.x-internal UDT metadata error |
 
 ## Package `com.datastax.driver.core` — type system & codecs (area: type-system, 22 types)
 
-Standalone class hierarchy; wrap 4.x internally. `equals`/`hashCode`/`toString`/CQL formatting
+Standalone class hierarchy; wrap 4.x. `equals`/`hashCode`/`toString`/CQL formatting
 reimplemented from 3.x (TEXT≡VARCHAR aliasing, `frozen<…>` templates).
 
 | Type | Kind | Status | 4.x target |
@@ -116,7 +116,7 @@ reimplemented from 3.x (TEXT≡VARCHAR aliasing, `frozen<…>` templates).
 
 ## Package `com.datastax.driver.core` — data accessors & value holders (area: data-values, 11 types)
 
-Reproduce the package-private abstract hierarchy with EXACT FQNs
+Reproduce the package-private abstract hierarchy with the original FQNs
 (`AbstractGettableByIndexData` → `AbstractAddressableByIndexData<T>` → `AbstractData<T>`, plus
 public `AbstractGettableData`); back protected `getValue`/`setValue` hooks with a wrapped 4.x
 value holder via `getBytesUnsafe`/`setBytesUnsafe`; copy 3.x typed-accessor bodies verbatim.
@@ -189,7 +189,7 @@ Self-contained mutable state holders; Cluster area consumes them into a 4.x `Opt
 
 ## Package `com.datastax.driver.core` — auth & SSL (area: auth-ssl, 15 types)
 
-Reimplemented **natively** (no 4.x type in any signature). Reproduce exact hierarchy so bridges regenerate.
+Reimplemented as shim code (no 4.x type in any signature). Reproduce the hierarchy so bridges regenerate.
 
 | Type | Kind | Status |
 |---|---|---|
@@ -279,8 +279,8 @@ generic bounds and misspelled factory `sizedTieredStategy()`.
 **Compile the 3.12.1 `driver-mapping` source VERBATIM** against the shim's reproduced 3.x core.
 No 4.x mapper to delegate to (4.x uses a compile-time annotation processor). All types FULL at
 signature level; behavioral types (`Mapper`,`MappingManager`,`Result`,`Mapper$Option`) PARTIAL
-via dependence on faithful shimmed core. `Mapper$Option$Type` (pkg-private enum leaked via
-`getType()`) reproduced with exact FQN + constant order.
+via dependence on the shimmed core. `Mapper$Option$Type` (pkg-private enum leaked via
+`getType()`) reproduced with the original FQN + constant order.
 
 ## Package `com.datastax.driver.extras.codecs.*` (area: extras, 27 types)
 
@@ -296,12 +296,12 @@ Jackson, javax.json, joda-time.
 Signatures exist for ABI; runtime translation throws, no-ops, or returns synthetic/lossy values.
 
 ### exceptions
-- `UnpreparedException` (type) — 4.x re-prepares transparently; adapter never emits it.
+- `UnpreparedException` (type) — 4.x re-prepares on its own; adapter never emits it.
 - `BusyPoolException` (type) — no 4.x pool-exhaustion exception.
 - `InvalidTypeException` (type) — 4.x throws IllegalArgumentException/ClassCastException; codec adapters catch & rethrow.
-- `DriverInternalError` (type) — no 4.x equivalent; emitted natively.
-- `PagingStateException` (type) — no 4.x equivalent; emitted natively by shim PagingState.
-- `TraceRetrievalException` (type) — no 4.x equivalent; emitted natively by shim QueryTrace.
+- `DriverInternalError` (type) — no 4.x equivalent; emitted by the shim.
+- `PagingStateException` (type) — no 4.x equivalent; emitted by shim PagingState.
+- `TraceRetrievalException` (type) — no 4.x equivalent; emitted by shim QueryTrace.
 - `UnresolvedUserTypeException` (type) — 3.x-internal UDT cycle error.
 - `UnsupportedFeatureException` (type) — 4.x throws IllegalArgumentException; uses 3.x ProtocolVersion enum.
 - `AlreadyExistsException.getKeyspace()/getTable()/wasTableCreation()` (translation) — 4.x exposes no getters; parse from message or null.

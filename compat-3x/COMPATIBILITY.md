@@ -3,8 +3,8 @@
 This module (`cassandra-driver-shim`) reimplements the **3.12.1** driver public API
 (`com.datastax.driver.*` — core, mapping, and extras) on top of the **4.x** driver
 (`com.datastax.oss.driver.*` / `java-driver-core`). It lets an application written against
-`cassandra-driver-{core,mapping,extras}:3.12.1` run on the 4.x engine as a **drop-in dependency
-swap**, without source changes.
+`cassandra-driver-{core,mapping,extras}:3.12.1` run on the 4.x engine as a drop-in dependency
+swap, without source changes.
 
 > This document is the per-API status reference. For the narrative design & upgrade guide (how the
 > shim works, verbatim vs. modified source, API mapping, and an upgrade checklist), see
@@ -13,7 +13,7 @@ swap**, without source changes.
 ## What is guaranteed
 
 - **Binary compatibility (ABI).** Verified with `japicmp` against the real 3.12.1 jars:
-  **0 incompatible** class/method/field changes across `core`, `mapping`, and `extras`
+  0 incompatible class/method/field changes across `core`, `mapping`, and `extras`
   (public + protected, generic signatures, constant values, and synthetic bridge methods compared).
   Code compiled against 3.12.1 links against this shim unchanged.
 - **Behavioral parity.** A differential suite runs the same program against the real 3.12.1 driver
@@ -33,14 +33,14 @@ swap**, without source changes.
   Dropwizard metrics (live registry + recorded `cql-requests`, JMX reporting on by default), and a
   custom `EndPointFactory` bridged onto the 4.x topology monitor.
 - **Verified against the 3.12.1 driver's own test suite.** The 3.12.1 driver's own TestNG unit suite
-  (`@Test(groups = "unit")`) was run against the shim with the real 3.x driver **absent** from the
-  classpath — the 3.x-compiled test bytecode links against the shim purely through binary
-  compatibility. **64 public-API unit classes / 695 test methods pass against the shim, identical to
-  the real 3.12.1 driver** (core 47/427, extras 15/207, mapping 2/61). Excluded classes are
-  **internal-bound** (they target package-private 3.x internals the shim deliberately omits — the
+  (`@Test(groups = "unit")`) was run against the shim with the real 3.x driver absent from the
+  classpath — the 3.x-compiled test bytecode links against the shim through binary
+  compatibility. 64 public-API unit classes / 695 test methods pass against the shim, identical to
+  the real 3.12.1 driver (core 47/427, extras 15/207, mapping 2/61). Excluded classes are
+  internal-bound (they target package-private 3.x internals the shim omits — the
   protocol-v5 `Segment*`/`Frame` framing, `Connection`/`AbstractReconnectionHandler`,
   `ReplicationStrategy`/`ReplicationFactor`/`Cluster.Manager`, `DirectedGraph`, `SimpleJSONParser`,
-  `StreamIdGenerator`, `ClockFactory`+`Native`, `EventDebouncer`, `RollingCount`) and **impl-detail**
+  `StreamIdGenerator`, `ClockFactory`+`Native`, `EventDebouncer`, `RollingCount`) and impl-detail
   (`StatementSizeTest` — the shim does not recompute the 3.x request wire-frame size, so
   `Statement.requestSizeInBytes(...)` returns `-1`). The full results table, categorized exclusion
   list, and reproduction harness live in
@@ -60,19 +60,19 @@ The compatibility evidence is wired into the Maven build as two layers:
   `src/test/java/com/datastax/driver/shim/unit/` that assert the shim's deterministic pure-logic
   surface (QueryBuilder/SchemaBuilder CQL rendering, codec format/parse + serialize round-trips,
   `DataType`/`TypeTokens`, the exception hierarchy, and `UUIDs`/`Bytes`/`VersionNumber`). They need
-  **no Cassandra and no real 3.x driver**.
+  no Cassandra and no real 3.x driver.
 
   ```
   JAVA_HOME=<jdk8> mvn -f pom.xml test
   ```
 
-- **Layer 2 — integration tests** (`mvn verify -Pit`, failsafe, `*IT`): the two authoritative
+- **Layer 2 — integration tests** (`mvn verify -Pit`, failsafe, `*IT`): the two
   cross-checks, gated on a live Cassandra + the real 3.12.1 jars. `DifferentialParityIT` compiles
   `ParityMain` against the real 3.12.1 API, runs it under the real driver and under the shim against
   the same node, and asserts each of the 149 KEY=VALUE observations identical (per-scenario
   reporting). `UpstreamSuiteIT` runs the 3.12.1 driver's own unit suite under both classpaths and
   asserts, per candidate class, that the shim's pass-set ⊇ the real's (64 classes / 695 methods).
-  Both **skip gracefully** when the contact point or the real jars are unavailable.
+  Both skip when the contact point or the real jars are unavailable.
 
   ```
   JAVA_HOME=<jdk8> mvn -f pom.xml verify -Pit \
@@ -82,30 +82,30 @@ The compatibility evidence is wired into the Maven build as two layers:
 
   The real-3.x and shim classpaths are resolved into `target/` (never hardcoded `/tmp`); the real
   `cassandra-driver-*` jars are kept off the module's own test classpath and used only by the IT
-  subprocesses. ABI is checked separately by [`src/test/scripts/japicmp.sh`](src/test/scripts/japicmp.sh).
+  subprocesses. ABI is checked by a separate script [`src/test/scripts/japicmp.sh`](src/test/scripts/japicmp.sh).
 
 ## Requirements
 
 - **JDK 8+** (the shim is compiled to Java 8 bytecode, matching 3.12.1).
-- Transitively pulls `java-driver-core` (4.x) and **unshaded Guava** (3.12.1 exposed Guava types
+- Transitively pulls `java-driver-core` (4.x) and unshaded Guava (3.12.1 exposed Guava types
   such as `ListenableFuture`, `TypeToken`, `Optional`, `ImmutableList` in its public API, so the
   shim links plain Guava; the 4.x driver's own Guava is shaded and does not conflict).
 
 ## Behavioral differences
 
 Every 3.12.1 public type and member exists at the ABI level. Most APIs that 4.x reorganized, made
-config-driven, or hid behind internal SPIs are **bridged** and behave as they did in 3.x — see
-**Supported via delegation** below (several of those bridges reach into 4.x *internal* SPIs, an
-approved trade-off noted per entry). The remaining items are genuinely absent in 4.x; per the
-project's chosen policy they **fail fast** (throw `UnsupportedOperationException` with a migration
-note), **no-op with a one-time warning**, or are **inert/lossy** — never silent misbehavior — and
+config-driven, or hid behind internal SPIs are bridged and behave as they did in 3.x — see
+Supported via delegation below (several of those bridges reach into 4.x *internal* SPIs, an
+approved trade-off noted per entry). The remaining items are absent in 4.x; per the
+project's chosen policy they fail fast (throw `UnsupportedOperationException` with a migration
+note), no-op with a one-time warning, or are inert/lossy — never silent misbehavior — and
 are listed after the supported set.
 
 ### Supported via delegation (with caveats)
 
 - **Arbitrary custom load-balancing policies.** `Cluster.Builder.withLoadBalancingPolicy(...)` honors
   any user-written 3.x `LoadBalancingPolicy` by delegating to it through the 4.x load-balancing SPI.
-  4.x instantiates the policy reflectively from `basic.load-balancing-policy.class` (there is no API
+  4.x instantiates the policy by reflection from `basic.load-balancing-policy.class` (there is no API
   to pass an instance), so the shim registers the user's policy instance under a fresh token, points
   that class option at an adapter (`com.datastax.shim.bridge.Shim3xLoadBalancingPolicy`), and injects
   the token into the programmatic config. The adapter recovers the instance, maps the 4.x `Node`s to
@@ -119,7 +119,7 @@ are listed after the supported set.
   (belt-and-suspenders), including when wrapped in `TokenAwarePolicy`. Caveats:
   - *Distance is push (4.x) vs pull (3.x).* The adapter pushes each node's distance to the 4.x
     `DistanceReporter` at `init` and re-pushes on every topology event; a policy that varies distance
-    purely over time (with no add/up/down/remove) will not have the change observed until the next
+    over time (with no add/up/down/remove) will not have the change observed until the next
     event.
   - *`Cluster` introspection during `init`.* The 3.x `Cluster` handed to `init` is the shim facade;
     `getConfiguration()` works, but a policy that drives I/O (`connect()`/`getMetadata()`) from within
@@ -202,7 +202,7 @@ are listed after the supported set.
     (`init` invoked, per-request round-trip) rather than a fired retry decision.
 
 - **`Cluster.Builder.withNettyOptions(NettyOptions)` / `withThreadingOptions(ThreadingOptions)`.**
-  Functional, by bridging the 3.x options onto 4.x's **internal** Netty SPI
+  Functional, by bridging the 3.x options onto 4.x's internal Netty SPI
   (`com.datastax.oss.driver.internal.core.context.NettyOptions`), which is a near-1:1 match. When
   either option is set, the shim builds the session through a `ShimCqlSessionBuilder` whose
   `ShimDriverContext` (a subclass of the internal `DefaultDriverContext`) returns a
@@ -238,14 +238,14 @@ are listed after the supported set.
   and the `retries/ignores-on-client-timeout` and `retries/ignores-on-connection-error` counters.
 
 - **`Cluster.Builder.withEndPointFactory(EndPointFactory)` and `DefaultEndPointFactory.create(Row)`.**
-  Functional, via the 4.x-**documented** extension point: `ShimTopologyMonitor` extends the internal
+  Functional, via the 4.x-documented extension point: `ShimTopologyMonitor` extends the internal
   `DefaultTopologyMonitor` and overrides `protected buildNodeEndPoint(AdminRow, InetSocketAddress,
   EndPoint)` (whose own javadoc says to extend the class and override this method for custom
   endpoints). For a peer row it wraps the 4.x `AdminRow` as a 3.x `Row`, calls the user's
   `EndPointFactory.create(row)`, and adapts the returned 3.x `EndPoint` to a 4.x endpoint; control/
   local rows and the no-factory case use the stock implementation. `factory.init(cluster)` runs once
   at startup. Verified end-to-end on a 2-node cluster: the factory's `create(...)` is invoked for the
-  one peer (`createCalls=1`) and the peer is discovered, identically to the real 3.12.1 driver.
+  one peer (`createCalls=1`) and the peer is discovered, as with the real 3.12.1 driver.
   Caveat: the `AdminRow`-backed `Row` only exposes the peer-row accessors an `EndPointFactory` reads
   (`getColumnDefinitions().contains`, `getInet`, `getInt`, `getString`, `getUUID`, `getBytes`,
   `isNull`, by column name); the index-based getter chain and other column types throw
@@ -271,7 +271,7 @@ inert on 4.x; each logs a one-time SLF4J WARN explaining why. Getters stay silen
   pluggable init executor. (Core/max pool size and max-requests-per-connection remain
   functional/mapped.)
 - **`PoolingOptions.refreshConnectedHosts()` / `refreshConnectedHost(Host)`** — 4.x manages pools and
-  node distance internally, so there is no runtime pool-refresh to trigger.
+  node distance itself, so there is no runtime pool-refresh to trigger.
 
 ### Lossy / approximate (returns a synthetic or reduced value)
 
@@ -284,43 +284,43 @@ inert on 4.x; each logs a one-time SLF4J WARN explaining why. Getters stay silen
 - **`Host.getTokens()`** → empty (4.x exposes ranges, not per-host tokens);
   **`getDseVersion()/getDseWorkload()/isDseGraphEnabled()`** → null/false on OSS 4.x.
 - **`Session.State.getTrashedConnections/getInFlightQueries`** → 0.
-- **`PagingState`** is reimplemented with the 3.x layout; a state produced by this shim is **not**
-  wire-compatible with a state produced by the real 3.12.1 driver (both resume correctly within
+- **`PagingState`** is reimplemented with the 3.x layout; a state produced by this shim is not
+  wire-compatible with a state produced by the real 3.12.1 driver (both resume within
   their own driver). Do not persist a paging state from one and resume it in the other.
 
 (`00-MAPPING-SPEC.md` is the original per-member design catalogue produced before implementation;
-many paths it initially marked UNMAPPED — retry/reconnection/timestamp policies, speculative
+many paths it first marked UNMAPPED — retry/reconnection/timestamp policies, speculative
 execution, the tracker/state/schema listeners, Netty/threading options, `QueryOptions` debouncing,
-and metrics/JMX — have since been bridged into **Supported via delegation** above. The sections in
+and metrics/JMX — have since been bridged into Supported via delegation above. The sections in
 this document reflect the current, verified state.)
 
 ## Excluded internal classes
 
 These 3.12.1 classes are `public` in bytecode but are internal utilities with no stable contract and
-no 4.x counterpart. They are intentionally **not** reproduced and are excluded from the japicmp
+no 4.x counterpart. They are not reproduced and are excluded from the japicmp
 comparison; no documented 3.x application references them:
-`Native`, `GuavaCompatibility` (reproduced internally where the object mapper needs it),
+`Native`, `GuavaCompatibility` (reproduced where the object mapper needs it),
 `MetricsUtil`, `DefaultPreparedStatement` (the shim supplies its own `PreparedStatement`
 implementation), `FramingFormatHandler`, `IgnoreJDK6Requirement`. The public utilities
-`CodecUtils`, `ParseUtils`, and `utils.Bytes` **are** reproduced and compared.
+`CodecUtils`, `ParseUtils`, and `utils.Bytes` are reproduced and compared.
 
 ## Known cosmetic differences (no behavioral impact)
 
 - The runtime object mapper assigns internal column aliases (`col1`, `col2`, …) in its generated
   `SELECT ... AS ...` queries in a different order than the real 3.12.1 driver. The mapper is
-  internally self-consistent, so `save`/`get`/`delete` results are identical; only the (internal,
+  self-consistent, so `save`/`get`/`delete` results are identical; only the (internal,
   non-user-facing) generated CQL alias labels differ.
 
 ## Packaging notes
 
 The shim is built as a single jar containing all three package trees. For a strict per-artifact
-drop-in (replacing `cassandra-driver-core`, `-mapping`, and `-extras` independently), it can be
+drop-in (replacing `cassandra-driver-core`, `-mapping`, and `-extras` each), it can be
 split into three jars by package, or republished under the original GAVs with a transitive
 dependency on `java-driver-core`.
 
 ## Source provenance (ported-3.x vs net-new)
 
-The module is deliberately split so it is easy to tell 3.12.1 source carried forward from net-new
+The module is split so it is easy to tell 3.12.1 source carried forward from net-new
 shim code:
 
 - `src/main/java-driver-3x/` — 3.12.1 source carried forward verbatim (identical modulo comments, no

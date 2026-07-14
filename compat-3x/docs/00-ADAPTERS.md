@@ -29,7 +29,7 @@ type-system. Consumers (data-values, statements, results, extras subclasses, map
 `MappedUDTCodec`) use the bridge.
 
 **Row / GettableData / SettableData** — One canonical value-access implementation. Reproduce the
-package-private abstract chain with exact FQNs: `AbstractGettableByIndexData` →
+package-private abstract chain with the original FQNs: `AbstractGettableByIndexData` →
 `AbstractAddressableByIndexData<T>` → `AbstractData<T>`, plus public `AbstractGettableData`. The
 abstract protected hooks `getValue(int)`/`setValue(int,ByteBuffer)` are backed by a wrapped 4.x
 `GettableByIndex`/`SettableByIndex` (or an `AccessibleByName` holder) via
@@ -43,9 +43,9 @@ statement. The immutable `4.x Statement<?>` is built once, at execute time, by t
 reading the accumulated fields (`StatementBridge.toV4`). `querybuilder.BuiltStatement` IS a 3.x
 `RegularStatement`; the same execute-time path converts it via `getQueryString()`+`getValues()`.
 Owner: statements + session-cluster (materialize). Consumers never construct 4.x statements
-directly.
+themselves.
 
-**Exceptions** — Reimplement the entire 3.x hierarchy natively as value objects. No shim
+**Exceptions** — Reimplement the 3.x hierarchy as value objects. No shim
 exception extends or wraps a 4.x exception. Translation is one-way (4.x thrown → 3.x shim) via
 `ExceptionBridge` at every adapter boundary. Owner: exceptions.
 
@@ -287,7 +287,7 @@ final class ExceptionBridge {
   static RuntimeException toV3(Throwable v4);   // returns a com.datastax.driver.core.exceptions.*
 
   // AllNodesFailedException -> NoHostAvailableException with Map<EndPoint,Throwable>
-  //   (recursively translate each per-node cause; Node -> EndPoint via MetadataBridge)
+  //   (translate each per-node cause in turn; Node -> EndPoint via MetadataBridge)
   // DriverTimeoutException -> OperationTimedOutException (EndPoint supplied from context)
   // servererrors.* (ReadTimeout/WriteTimeout/Unavailable/ReadFailure/WriteFailure/
   //   CASWriteUnknown/Overloaded/... ) -> matching 3.x subclass
@@ -399,6 +399,6 @@ final class TrackerBridge {
 - HdrHistogram and Dropwizard/Netty/slf4j are runtime deps of the areas that expose them
   (misc-core percentile trackers; options-config Metrics/QueryLogger/NettyOptions), not of the
   bridge itself.
-- `CodecBridge` idempotency and `MetadataBridge` caching are the two correctness-critical
+- `CodecBridge` idempotency and `MetadataBridge` caching are the two
   invariants: double-adaptation causes infinite delegation; unstable Host/metadata identity breaks
   3.x `equals()` semantics.

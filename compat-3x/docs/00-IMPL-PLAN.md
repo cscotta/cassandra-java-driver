@@ -106,8 +106,8 @@ metadata (Host), ColumnDefinitions, LatencyTracker, and (later) querybuilder Bui
 
 **Tier 12 — session-cluster (integration hub).** `Cluster`/`Session`/`AbstractSession`/
 `DelegatingCluster`/`CloseFuture`/`Configuration` + the materialize-at-execute path
-(`StatementBridge.toV4`) + `ConfigBridge` (options + policy graph → 4.x). Consumes nearly every
-prior tier. This is where the driver actually runs.
+(`StatementBridge.toV4`) + `ConfigBridge` (options + policy graph → 4.x). Consumes most
+prior tiers. This is where the driver runs.
 
 **Tier 13 — querybuilder.** Port 3.x sources verbatim. Depends on statements, type-system,
 metadata, enums, policies. Execute-time conversion seam already provided by Tier 12.
@@ -162,11 +162,11 @@ part of the documented 3.x API and no reference application links them.
 internal utilities, BUT the extras codecs port them verbatim and depend on them, so they are
 **reproduced in the shim** (ported from 3.12.1) and **retained in the comparison** — a verbatim
 port matches the reference ABI, so no exclusion is needed. `com.datastax.driver.core.utils.Bytes`
-is a documented public utility and is reproduced + compared normally.
+is a documented public utility and is reproduced + compared.
 
 Package-private types (e.g. `ArrayBackedResultSet`, `ArrayBackedRow`, `DefaultResultSetFuture`,
 `Token$Factory`, `UserType$Shallow`, `WrappingEndPoint`, LB/query-builder helper classes) are
-automatically outside a `-protected` comparison and need no explicit exclude, except where they
+outside a `-protected` comparison and need no explicit exclude, except where they
 appear in a public extends/implements chain (querybuilder `Utils$Appendeable`,
 `BuiltStatement$ForwardingStatement`, data-values abstract parents, auth package-private
 authenticators) — those ARE reproduced with identical FQNs/access so the public chains resolve.
@@ -190,7 +190,7 @@ signatures before building consumers; pin Guava major up front. Also verify
 `DelegatingCluster()` construction (`super(dummy,null)` then `super.closeAsync()`) returns a
 completed CloseFuture without allocating a session.
 
-**Load-balancing policies.** 3.x and 4.x LB SPIs are architecturally disjoint (pull-Iterator +
+**Load-balancing policies.** 3.x and 4.x LB SPIs are disjoint by design (pull-Iterator +
 programmatic chaining vs push-DistanceReporter + config-driven single policy). 4.x never invokes a
 shim policy method. De-risk: treat shim LB types as inert value/marker objects (signature-compat
 only); do translation in `Cluster.Builder.withLoadBalancingPolicy` by unwrapping the policy graph
@@ -200,7 +200,7 @@ assert signature compat, not routing behavior.
 
 **Object mapper.** No 4.x runtime mapper (4.x uses a compile-time processor). De-risk: compile the
 3.12.1 `driver-mapping` source verbatim against the shim core — it touches only 3.x core, so every
-public/protected signature and package-private helper reproduces exactly, and runtime flows through
+public/protected signature and package-private helper reproduces, and runtime flows through
 the shimmed core into `CqlSession`. Risk concentrates in three shim-core seams the mapper needs:
 `TypeCodec.AbstractUDTCodec` (5 protected abstract methods), subclassable `BoundStatement`
 (`MapperBoundStatement`), and `AbstractSession.checkNotInEventLoop()`. Build those first; schema-
