@@ -6,6 +6,10 @@ This module (`cassandra-driver-shim`) reimplements the **3.12.1** driver public 
 `cassandra-driver-{core,mapping,extras}:3.12.1` run on the 4.x engine as a **drop-in dependency
 swap**, without source changes.
 
+> This document is the per-API status reference. For the narrative design & upgrade guide (how the
+> shim works, verbatim vs. modified source, API mapping, and an upgrade checklist), see
+> [`GUIDE.md`](GUIDE.md).
+
 ## What is guaranteed
 
 - **Binary compatibility (ABI).** Verified with `japicmp` against the real 3.12.1 jars:

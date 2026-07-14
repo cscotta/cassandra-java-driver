@@ -5,6 +5,10 @@ This module reimplements the DataStax/Apache Cassandra Java driver **3.12.1** pu
 (`org.apache.cassandra:java-driver-core`). An application compiled against
 `cassandra-driver-{core,mapping,extras}:3.12.1` runs unchanged after swapping this artifact in.
 
+**New to the shim?** [`GUIDE.md`](GUIDE.md) is the full design & upgrade guide — how the shim works,
+what was carried forward from 3.x (verbatim vs. modified), how each API maps onto 4.x, and the
+caveats + checklist for upgraders.
+
 It is intentionally kept **out of the root reactor** (`<modules>`) so the verbatim-ported 3.x
 sources are not subject to the 4.x checkstyle/format/license plugins.
 
@@ -20,8 +24,8 @@ sources are not subject to the 4.x checkstyle/format/license plugins.
   **64 public-API classes / 695 methods pass, identical to the real driver**.
 
 See [`COMPATIBILITY.md`](COMPATIBILITY.md) for the full per-API status (Supported via delegation /
-fail-fast / no-op / lossy) and [`docs/`](docs/) for the design (mapping spec, adapter design,
-implementation plan).
+fail-fast / no-op / lossy), [`GUIDE.md`](GUIDE.md) for the design & upgrade guide, and
+[`docs/`](docs/) for the design corpus (mapping spec, adapter design, implementation plan).
 
 ## Build
 
@@ -77,10 +81,10 @@ behavior that 4.x otherwise hides — see `COMPATIBILITY.md` for where and why.
 
 ## Source layout: ported-3.x vs net-new shim code
 
-Roughly four-fifths of this module is Cassandra Java driver **3.12.1** source carried forward
-verbatim; the rest is net-new shim code. The two are **segregated by source directory** so provenance
-is obvious at a glance (package names stay `com.datastax.driver.*` — the ABI requires them, so this is
-a directory split, not a package rename):
+Most of this module — **239 of 332 source files** — is Cassandra Java driver **3.12.1** source
+carried forward verbatim; the rest is net-new shim code. The two are **segregated by source
+directory** so provenance is obvious at a glance (package names stay `com.datastax.driver.*` — the ABI
+requires them, so this is a directory split, not a package rename):
 
 - **`src/main/java-driver-3x/`** — 3.12.1 source carried forward. Every file is identical to its
   3.12.1 counterpart **modulo comments**, contains **no shim code**, and carries **no** provenance
